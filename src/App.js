@@ -2,8 +2,9 @@ import React from 'react';
 import { AsyncStorage } from 'react-native';
 import { ApolloProvider } from 'react-apollo';
 import { ApolloClient } from 'apollo-client';
-import { ApolloLink, from } from 'apollo-link';
+import { ApolloLink } from 'apollo-link';
 import { setContext } from 'apollo-link-context';
+import { onError } from 'apollo-link-error';
 import { HttpLink } from 'apollo-link-http';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 //import { createStore, applyMiddleware } from 'redux';
@@ -13,10 +14,10 @@ import { InMemoryCache } from 'apollo-cache-inmemory';
 import Router from './Router';
 
 const httpLink = new HttpLink({
-	uri: 'https://1899aeb8.ngrok.io/graphql'
+	uri: 'https://51cff600.ngrok.io/graphql'
 });
 
-const authMiddleware = setContext((req, { headers }) => {
+const authLink = setContext((req, { headers }) => {
 	AsyncStorage.getItem('auth_token').then(token => {
 		return {
 			headers: {
@@ -29,8 +30,23 @@ const authMiddleware = setContext((req, { headers }) => {
 	});
 });
 
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+	if (graphQLErrors) {
+		graphQLErrors.map(({ message, locations, path}) => {
+			console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+		});
+	}
+	if (networkError) {
+		console.log(`[Network error]: ${networkError}`);
+	}
+});
+
 const client = new ApolloClient({
-	link: from([authMiddleware, httpLink]),
+	link: ApolloLink.from([
+		errorLink,
+		authLink,
+		httpLink
+	]),
 	cache: new InMemoryCache()
 });
 

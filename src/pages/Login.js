@@ -19,7 +19,7 @@ import {
 } from '../components';
 
 const LOGIN = gql`
-	mutation login($emailOrUsername: String!, $password: String!) {
+	mutation LoginMutation($emailOrUsername: String!, $password: String!) {
 		jwt: login(emailOrUsername: $emailOrUsername, password: $password) 
 	}
 `;
@@ -74,21 +74,15 @@ class Login extends React.Component {
 			<Mutation mutation={LOGIN}>
 				{(login, { loading, error, data, called }) => {
 					console.log({ loading, error, data, called });
-					if (called && !error && data) {
-						console.log('AsyncStorage');
+					if (loading) {
+						return <Spinner />;
+					} else if (data) {
 						AsyncStorage.setItem('auth_token', data.jwt).then(() => {
 							Actions.reset('participate');
 						}).catch(err => {
-							console.log('AsyncStorage error');
 							console.log(err);
 						});
-					} else if (!loading && called && error) {
-						console.log('Error');
 					}
-
-					const loginEnabled = !loading &&
-						this.state.identifier.trim().length > 0 &&
-						this.state.password.trim().length > 0;
 
 					return (
 						<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContainer}>
@@ -122,7 +116,7 @@ class Login extends React.Component {
 										const { identifier, password } = this.state;
 										login({ variables: { emailOrUsername: identifier, password: password } })
 									}}
-									disabled={!loginEnabled}
+									disabled={this.state.identifier.trim().length === 0 || this.state.password.trim().length === 0}
 								/>
 							</Container>
 							<Container>
@@ -134,9 +128,8 @@ class Login extends React.Component {
 							</Container>
 							{
 								error && error.graphQLErrors &&
-								error.graphQLErrors.map(e => <Text style={styles.error} key={e.message}>{e.message}</Text>)
+								error.graphQLErrors.map(({ message }, i) => <Text style={styles.error} key={i}>{message}</Text>)
 							}
-							{loading && <Spinner />}
 						</ScrollView>
 					);
 				}}
