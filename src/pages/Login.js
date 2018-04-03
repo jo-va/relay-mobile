@@ -105,19 +105,23 @@ class Login extends React.Component {
 
 	loginFailure(error) {
 		const newState = { ...INITIAL_STATE };
+		const errors = [];
 
 		if (error && error.graphQLErrors) {
-			newState.errors.push(error.graphQLErrors.map(({ message }) => message));
+			errors.push(error.graphQLErrors.map(({ message }) => message));
 		}
 		if (error && error.networkError) {
-			newState.errors.push(error.networkError.map(({ message }) => message));
+			errors.push(error.networkError.map(({ message }) => message));
 		}
 
-		this.setState(newState);
+		this.setState({ ...newState, errors });
 	}
 
 	canLogin() {
-		return !validatejs.validate({ identifier: this.state.identifier, password: this.state.password }, CONSTRAINTS);
+		return !validatejs.validate({
+			identifier: this.state.identifier,
+			password: this.state.password
+		}, CONSTRAINTS);
 	}
 
 	validateIdentifier() {

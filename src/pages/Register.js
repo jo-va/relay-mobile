@@ -132,15 +132,16 @@ class Register extends React.Component {
 
 	registerFailure(error) {
 		const newState = { ...INITIAL_STATE };
+		const errors = [];
 
 		if (error && error.graphQLErrors) {
-			newState.errors.push(error.graphQLErrors.map(({ message }) => message));
+			errors.push(error.graphQLErrors.map(({ message }) => message));
 		}
 		if (error && error.networkError) {
-			newState.errors.push(error.networkError.map(({ message }) => message));
+			errors.push(error.networkError.map(({ message }) => message));
 		}
 
-		this.setState(newState);
+		this.setState({ ...newState, errors });
 	}
 
 	canRegister() {
@@ -148,7 +149,7 @@ class Register extends React.Component {
 			email: this.state.email,
 			username: this.state.username,
 			password: this.state.password,
-			passwordConfirmation: this.state.passwordConfirmation
+			confirmationPassword: this.state.confirmationPassword
 		}, CONSTRAINTS);
 	}
 
@@ -163,12 +164,33 @@ class Register extends React.Component {
 	}
 
 	validatePassword() {
-		const errors = validatejs.single(this.state.password, CONSTRAINTS.password);
-		this.setState({ ...this.state, passwordError: errors ? errors[0] : null });
+		if (isBlank(this.state.confirmationPassword)) {
+			const errors = validatejs.single(this.state.password, CONSTRAINTS.password);
+			this.setState({ ...this.state, passwordError: errors ? errors[0] : null });
+		} else {
+			const result = validatejs.validate({
+				password: this.state.password,
+				confirmationPassword: this.state.confirmationPassword
+			}, {
+				password: CONSTRAINTS.password,
+				confirmationPassword: CONSTRAINTS.confirmationPassword
+			});
+			this.setState({
+				...this.state,
+				passwordError: result && result.password ? result.password[0] : null,
+				confirmationPasswordError: result && result.confirmationPassword ? result.confirmationPassword[0] : null
+			});
+		}
 	}
 
 	validateConfirmationPassword() {
-		const errors = validatejs.single(this.state.confirmationPassword, CONSTRAINTS.confirmationPassword);
+		const result = validatejs.validate({
+			password: this.state.password,
+			confirmationPassword: this.state.confirmationPassword
+		}, {
+			confirmationPassword: CONSTRAINTS.confirmationPassword
+		});
+		const errors = result ? result.confirmationPassword : null;
 		this.setState({ ...this.state, confirmationPasswordError: errors ? errors[0] : null });
 	}
 
@@ -224,7 +246,7 @@ class Register extends React.Component {
 									placeholder='Confirm Password'
 									autoCapitalize='none'
 									autoCorrect={false}
-									onChangeText={value => this.handleInputChange('passwordConfirmation', value)}
+									onChangeText={value => this.handleInputChange('confirmationPassword', value)}
 									onBlur={this.validateConfirmationPassword.bind(this)}
 									error={this.state.confirmationPasswordError}
 								/>
