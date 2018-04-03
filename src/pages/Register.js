@@ -57,6 +57,7 @@ const REGISTER = gql`
 const CONSTRAINTS = {
 	email: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please provide an email address'
 		},
 		email: {
@@ -65,11 +66,13 @@ const CONSTRAINTS = {
 	},
 	username: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please provide a username'
 		}
 	},
 	password: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please enter a password'
 		},
 		length: {
@@ -79,6 +82,7 @@ const CONSTRAINTS = {
 	},
 	confirmationPassword: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please confirm your password'
 		},
 		equality: {

@@ -57,11 +57,13 @@ const LOGIN = gql`
 const CONSTRAINTS = {
 	identifier: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please provide a username or email'
 		}
 	},
 	password: {
 		presence: {
+			allowEmpty: false,
 			message: '^Please enter a password'
 		}
 	}
