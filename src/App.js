@@ -14,7 +14,7 @@ import { InMemoryCache } from 'apollo-cache-inmemory';
 import Router from './Router';
 
 const httpLink = new HttpLink({
-	uri: 'https://51cff600.ngrok.io/graphql'
+	uri: 'https://b703eaf5.ngrok.io/graphql'
 });
 
 const authLink = setContext((req, { headers }) => {

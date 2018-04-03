@@ -4,25 +4,19 @@ import {
 	StyleSheet,
 	Text,
 	View,
-	TextInput,
 	ScrollView
 } from 'react-native';
 import { Actions } from 'react-native-router-flux';
 import { graphql, Mutation } from 'react-apollo';
 import gql from 'graphql-tag';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import validatejs from 'validate.js';
 import {
 	Button,
 	Container,
-	Label,
+	TextField,
 	Spinner
 } from '../components';
-
-const LOGIN = gql`
-	mutation LoginMutation($emailOrUsername: String!, $password: String!) {
-		jwt: login(emailOrUsername: $emailOrUsername, password: $password) 
-	}
-`;
+import { isBlank } from '../common';
 
 const styles = StyleSheet.create({
 	scroll: {
@@ -32,11 +26,6 @@ const styles = StyleSheet.create({
 	scrollContainer: {
 		flexGrow: 1,
 		justifyContent: 'center'
-	},
-	textInput: {
-		height: 60,
-		fontSize: 20,
-		textAlign: 'center'
 	},
 	primaryButton: {
 		backgroundColor: '#34a853'
@@ -59,64 +48,130 @@ const styles = StyleSheet.create({
 	}
 });
 
+const LOGIN = gql`
+	mutation LoginMutation($emailOrUsername: String!, $password: String!) {
+		jwt: login(emailOrUsername: $emailOrUsername, password: $password) 
+	}
+`;
+
+const CONSTRAINTS = {
+	identifier: {
+		presence: {
+			message: '^Please provide a username or email'
+		}
+	},
+	password: {
+		presence: {
+			message: '^Please enter a password'
+		}
+	}
+};
+
+const INITIAL_STATE = {
+	identifier: '',
+	identifierError: '',
+	password: '',
+	passwordError: '',
+	errors: []
+};
+
 class Login extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = {
-			identifier: '',
-			password: '',
-		};
+		this.state = { ...INITIAL_STATE };
 	}
 
+	handleInputChange(field, value) {
+		this.setState({
+			...this.state,
+			[field]: value.trim()
+		});
+	}
+
+	doLogin(loginMutation) {
+		if (this.canLogin()) {
+			const { identifier, password } = this.state;
+			loginMutation({ variables: { emailOrUsername: identifier, password } });
+		}
+	}
+
+	loginSuccess(data) {
+		AsyncStorage.setItem('auth_token', data.jwt);
+		Actions.reset('participate');
+	}
+
+	loginFailure(error) {
+		const newState = { ...INITIAL_STATE };
+
+		if (error && error.graphQLErrors) {
+			newState.errors.push(error.graphQLErrors.map(({ message }) => message));
+		}
+		if (error && error.networkError) {
+			newState.errors.push(error.networkError.map(({ message }) => message));
+		}
+
+		this.setState(newState);
+	}
+
+	canLogin() {
+		return !validatejs.validate({ identifier: this.state.identifier, password: this.state.password }, CONSTRAINTS);
+	}
+
+	validateIdentifier() {
+		const error = validatejs.single(this.state.identifier, CONSTRAINTS.identifier);
+		this.setState({ ...this.state, identifierError: error ? error[0] : null });
+	}
+
+	validatePassword() {
+		const error = validatejs.single(this.state.password, CONSTRAINTS.password);
+		this.setState({ ...this.state, passwordError: error ? error[0] : null });
+	}
+	
 	render() {
+		console.log(this.state);
 		return (
-			<Mutation mutation={LOGIN}>
-				{(login, { loading, error, data, called }) => {
-					console.log({ loading, error, data, called });
+			<Mutation
+				mutation={LOGIN}
+				onCompleted={this.loginSuccess.bind(this)}
+				onError={this.loginFailure.bind(this)}
+			>
+				{(login, { loading }) => {
 					if (loading) {
 						return <Spinner />;
-					} else if (data) {
-						AsyncStorage.setItem('auth_token', data.jwt).then(() => {
-							Actions.reset('participate');
-						}).catch(err => {
-							console.log(err);
-						});
 					}
-
 					return (
 						<ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContainer}>
 							<Container>
 								<Text style={styles.title}>Please Sign In</Text>
 							</Container>
 							<Container>
-								<TextInput
-									style={styles.textInput}
+								<TextField
 									placeholder='Username or Email'
 									autoCapitalize='none'
 									autoCorrect={false}
-									onChangeText={text => this.setState({ ...this.state, identifier: text })}
+									onChangeText={value => this.handleInputChange('identifier', value)}
+									onBlur={this.validateIdentifier.bind(this)}
+									error={this.state.identifierError}
 								/>
 							</Container>
 							<Container>
-								<TextInput
-									style={styles.textInput}
+								<TextField
 									placeholder='Password'
 									autoCapitalize='none'
 									autoCorrect={false}
 									secureTextEntry={true}
-									onChangeText={text => this.setState({ ...this.state, password: text })}
+									onChangeText={value => this.handleInputChange('password', value)}
+									onBlur={this.validatePassword.bind(this)}
+									error={this.state.passwordError}
 								/>
 							</Container>
 							<Container>
 								<Button
 									label='Sign In'
 									styles={{button: styles.primaryButton, label: styles.buttonWhiteText}}
-									onPress={() => {
-										const { identifier, password } = this.state;
-										login({ variables: { emailOrUsername: identifier, password: password } })
-									}}
-									disabled={this.state.identifier.trim().length === 0 || this.state.password.trim().length === 0}
+									onPress={() => this.doLogin(login)}
+									disabled={!this.canLogin()}
 								/>
 							</Container>
 							<Container>
@@ -126,10 +181,7 @@ class Login extends React.Component {
 									onPress={() => Actions.register()}
 								/>
 							</Container>
-							{
-								error && error.graphQLErrors &&
-								error.graphQLErrors.map(({ message }, i) => <Text style={styles.error} key={i}>{message}</Text>)
-							}
+							{this.state.errors.map((error, i) => <Text style={styles.error} key={i}>{error}</Text>)}
 						</ScrollView>
 					);
 				}}
