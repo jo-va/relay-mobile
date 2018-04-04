@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-	AsyncStorage,
 	StyleSheet,
 	Text,
 	View,
@@ -16,7 +15,7 @@ import {
 	TextField,
 	Spinner
 } from '../components';
-import { isBlank } from '../common';
+import { isBlank, storage } from '../common';
 
 const styles = StyleSheet.create({
 	scroll: {
@@ -126,7 +125,7 @@ class Register extends React.Component {
 	}
 
 	registerSuccess(data) {
-		AsyncStorage.setItem('auth_token', data.jwt);
+		storage.set('auth_token', data.jwt);
 		Actions.reset('participate');
 	}
 
@@ -138,7 +137,7 @@ class Register extends React.Component {
 			errors.push(error.graphQLErrors.map(({ message }) => message));
 		}
 		if (error && error.networkError) {
-			errors.push(error.networkError.map(({ message }) => message));
+			errors.push(error.networkError.message);
 		}
 
 		this.setState({ ...newState, errors });
