@@ -16,8 +16,8 @@ const RouterComponent = () => {
 				</Scene>
 				<Scene key='participate' component={Participate} title='Secret code' hideNavBar />
 				<Scene key='main'>
-					<Scene key='profile' component={Profile} title='Profile' />
 					<Scene key='dashboard' component={Dashboard} title='Dashboard' initial />
+					<Scene key='profile' component={Profile} title='Profile' />
 				</Scene>
 			</Scene>
 		</Router>

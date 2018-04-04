@@ -17,36 +17,6 @@ import {
 } from '../components';
 import { isBlank, storage } from '../common';
 
-const styles = StyleSheet.create({
-	scroll: {
-		padding: 30,
-		flexDirection: 'column'
-	},
-	scrollContainer: {
-		flexGrow: 1,
-		justifyContent: 'center'
-	},
-	primaryButton: {
-		backgroundColor: '#34a853'
-	},
-	buttonWhiteText: {
-		fontSize: 20,
-		color: '#fff'
-	},
-	title: {
-		fontSize: 30,
-		fontWeight: 'bold',
-		fontFamily: 'Verdana',
-		alignSelf: 'center'
-	},
-	error: {
-		fontSize: 20,
-		color: 'red',
-		padding: 20,
-		textAlign: 'center'
-	}
-});
-
 const REGISTER = gql`
 	mutation RegisterMutation($username: String!, $email: String!, $password: String!) {
 		jwt: register(username: $username, email: $email, password: $password) 
@@ -266,5 +236,35 @@ class Register extends React.Component {
 		);
 	}
 }
+
+const styles = StyleSheet.create({
+	scroll: {
+		padding: 30,
+		flexDirection: 'column'
+	},
+	scrollContainer: {
+		flexGrow: 1,
+		justifyContent: 'center'
+	},
+	primaryButton: {
+		backgroundColor: '#34a853'
+	},
+	buttonWhiteText: {
+		fontSize: 20,
+		color: '#fff'
+	},
+	title: {
+		fontSize: 30,
+		fontWeight: 'bold',
+		fontFamily: 'Verdana',
+		alignSelf: 'center'
+	},
+	error: {
+		fontSize: 20,
+		color: 'red',
+		padding: 20,
+		textAlign: 'center'
+	}
+});
 
 export default Register;

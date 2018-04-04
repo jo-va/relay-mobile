@@ -36,7 +36,7 @@ class Storage {
 	set(key, value) {
 		try {
 			this.realm.write(() => {
-				this.realm.create('KeyValueItem', { key, value });
+				this.realm.create('KeyValueItem', { key, value }, true);
 			});
 		} catch (err) {
 			console.log('Storage.set error: ', err);
@@ -44,8 +44,14 @@ class Storage {
 	}
 	
 	remove(key) {
-		const object = this.realm.objects('KeyValueItem').filtered(`key = "${key}"`);
-		this.realm.delete(object);
+		try {
+			this.realm.write(() => {
+				const object = this.realm.objects('KeyValueItem').filtered(`key = "${key}"`);
+				this.realm.delete(object);
+			});
+		} catch (err) {
+			console.log('Storage.remove error: ', err);
+		}
 	}
 }
 

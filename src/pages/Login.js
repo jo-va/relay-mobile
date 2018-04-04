@@ -6,7 +6,7 @@ import {
 	ScrollView
 } from 'react-native';
 import { Actions } from 'react-native-router-flux';
-import { graphql, Mutation } from 'react-apollo';
+import { graphql, Mutation, withApollo } from 'react-apollo';
 import gql from 'graphql-tag';
 import validatejs from 'validate.js';
 import {
@@ -17,39 +17,24 @@ import {
 } from '../components';
 import { isBlank, storage } from '../common';
 
-const styles = StyleSheet.create({
-	scroll: {
-		padding: 30,
-		flexDirection: 'column'
-	},
-	scrollContainer: {
-		flexGrow: 1,
-		justifyContent: 'center'
-	},
-	primaryButton: {
-		backgroundColor: '#34a853'
-	},
-	buttonWhiteText: {
-		fontSize: 20,
-		color: '#fff'
-	},
-	title: {
-		fontSize: 30,
-		fontWeight: 'bold',
-		fontFamily: 'Verdana',
-		alignSelf: 'center'
-	},
-	error: {
-		fontSize: 20,
-		color: 'red',
-		padding: 20,
-		textAlign: 'center'
-	}
-});
-
 const LOGIN = gql`
 	mutation LoginMutation($emailOrUsername: String!, $password: String!) {
 		jwt: login(emailOrUsername: $emailOrUsername, password: $password) 
+	}
+`;
+
+const CURRENT_PARTICIPANT = gql`
+	query Participant {
+		currentParticipant {
+			id
+			username
+			user {
+				id
+			}
+			group {
+				name
+			}
+		}
 	}
 `;
 
@@ -73,7 +58,8 @@ const INITIAL_STATE = {
 	identifierError: '',
 	password: '',
 	passwordError: '',
-	errors: []
+	errors: [],
+	loading: false
 };
 
 class Login extends React.Component {
@@ -81,6 +67,26 @@ class Login extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = { ...INITIAL_STATE };
+	}
+
+	componentWillMount() {
+		this.setState({ ...this.state, loading: true });
+
+		const token = storage.get('auth_token');
+		console.log('will mount', token);
+		if (token) {
+			this.props.client.query({
+				query: CURRENT_PARTICIPANT,
+			}).then(res => {
+				if (res.data.currentParticipant) {
+					Actions.reset('main');
+				} else {
+					this.setState({ ...this.state, loading: false });
+				}
+			});
+		} else {
+			this.setState({ ...this.state, loading: false });
+		}
 	}
 
 	handleInputChange(field, value) {
@@ -98,11 +104,25 @@ class Login extends React.Component {
 	}
 
 	loginSuccess(data) {
+		this.setState({ ...this.state, loading: true });
+
 		storage.set('auth_token', data.jwt);
-		Actions.reset('participate');
+		console.log(data.jwt);
+
+		this.props.client.query({
+			query: CURRENT_PARTICIPANT,
+		}).then(res => {
+			if (res.data.currentParticipant) {
+				Actions.reset('main');
+			} else {
+				Actions.reset('participate');
+			}
+		});
 	}
 
 	loginFailure(error) {
+		this.setState({ ...this.state, loading: false });
+
 		const newState = { ...INITIAL_STATE };
 		const errors = [];
 
@@ -142,7 +162,7 @@ class Login extends React.Component {
 				onError={this.loginFailure.bind(this)}
 			>
 				{(login, { loading }) => {
-					if (loading) {
+					if (loading || this.state.loading) {
 						return <Spinner />;
 					}
 					return (
@@ -195,4 +215,34 @@ class Login extends React.Component {
 	}
 }
 
-export default Login;
+const styles = StyleSheet.create({
+	scroll: {
+		padding: 30,
+		flexDirection: 'column'
+	},
+	scrollContainer: {
+		flexGrow: 1,
+		justifyContent: 'center'
+	},
+	primaryButton: {
+		backgroundColor: '#34a853'
+	},
+	buttonWhiteText: {
+		fontSize: 20,
+		color: '#fff'
+	},
+	title: {
+		fontSize: 30,
+		fontWeight: 'bold',
+		fontFamily: 'Verdana',
+		alignSelf: 'center'
+	},
+	error: {
+		fontSize: 20,
+		color: 'red',
+		padding: 20,
+		textAlign: 'center'
+	}
+});
+
+export default withApollo(Login);
